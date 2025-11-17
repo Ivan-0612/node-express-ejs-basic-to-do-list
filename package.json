@@ -1,17 +1,26 @@
 {
   "name": "todolist-v1",
   "version": "1.0.0",
-  "description": "",
+  "description": "example for my class on Node at Uni",
+  "homepage": "https://github.com/Ivan-0612/node-express-ejs-basic-to-do-list#readme",
+  "bugs": {
+    "url": "https://github.com/Ivan-0612/node-express-ejs-basic-to-do-list/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ivan-0612/node-express-ejs-basic-to-do-list.git"
+  },
+  "license": "ISC",
+  "author": "Javi",
+  "type": "commonjs",
   "main": "app-map.js",
   "scripts": {
     "start": "node app-map.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Javi",
-  "license": "ISC",
   "dependencies": {
     "body-parser": "^1.18.3",
     "ejs": "^2.6.1",
-    "express": "^4.16.3"
+    "express": "^4.21.2"
   }
 }
