@@ -13,7 +13,7 @@
             <form action="/delete" method="post">
               <input type="checkbox" name="uid" value="<%= item._id %>" onChange="this.form.submit()">
               <p>
-                <%= item.text %>
+                <%= item.name %>
               </p>
               <input type="hidden" name="listName" value="General">
             </form>
@@ -42,7 +42,7 @@
               <input type="checkbox" name="uid" value="<%= item._id %>" onChange="this.form.submit()">
 
               <p>
-                <%= item.text %>
+                <%= item.name %>
               </p>
 
               <input type="hidden" name="listName" value="Work">

@@ -1,9 +1,9 @@
 //jshint esversion:6
-require('dotenv').config(); // Cargar variables de entorno (seguridad)
+require('dotenv').config();
 
 const express = require("express");
 const bodyParser = require("body-parser");
-const mongoose = require("mongoose"); // Importamos Mongoose
+const mongoose = require("mongoose");
 const date = require(__dirname + "/date.js");
 
 const app = express();
@@ -12,93 +12,144 @@ app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
-// --- 1. CONEXIÓN A BASE DE DATOS ---
+// 1. CONEXIÓN
 const connectDB = async () => {
   try {
-    // Usamos la variable del archivo .env
     await mongoose.connect(process.env.MONGO_URI);
-    console.log("Conectado exitosamente a MongoDB");
+    console.log("Conectado a MongoDB: todolistDB");
   } catch (err) {
-    console.error("Error conectando a MongoDB:", err);
-    process.exit(1);
+    console.error("Error de conexión:", err);
   }
 };
 connectDB();
 
-// --- 2. CREAR EL ESQUEMA (El molde de los datos) ---
+// 2. ESQUEMAS Y MODELOS
+
+// --- Esquema de Items (Tareas individuales) ---
 const itemsSchema = new mongoose.Schema({
-  text: String,       // El texto de la tarea
-  listType: String    // "General" o "Work" (para saber dónde va)
+  name: String // Cambiamos 'text' por 'name' por convención estándar
 });
 
-// --- 3. CREAR EL MODELO (La herramienta para guardar/buscar) ---
+// Modelo para la colección 'items' (Lista General)
 const Item = mongoose.model("Item", itemsSchema);
+
+
+// --- Esquema de Listas (Listas personalizadas) ---
+const listSchema = new mongoose.Schema({
+  name: String,
+  items: [itemsSchema] // ¡Esto es clave! Embebemos una lista de items dentro de la lista
+});
+
+// Modelo para la colección 'lists' (Lista Work, etc.)
+const List = mongoose.model("List", listSchema);
+
+
+// 3. DATOS POR DEFECTO (Opcional, para que no empiece vacío)
+const defaultItems = [
+  { name: "Bienvenido a tu lista de tareas" },
+  { name: "Dale al + para agregar una nueva tarea" },
+  { name: "<-- Dale al checkbox para borrarla" }
+];
 
 
 // --- RUTAS ---
 
-// Ruta Principal ÚNICA
-// Nota: Ahora usamos 'async' porque la base de datos tarda unos milisegundos en responder
 app.get("/", async function (req, res) {
   const day = date.getDate();
 
   try {
-    // Buscamos TODAS las tareas en la base de datos
-    const allItems = await Item.find({});
+    // A. Buscamos tareas para la columna GENERAL (Colección 'items')
+    let generalItems = await Item.find({});
 
-    // Filtramos usando Javascript para separar las listas
-    // (Mongoose devuelve un array de objetos con _id, text y listType)
-    const generalList = allItems.filter(item => item.listType === "General");
-    const workList = allItems.filter(item => item.listType === "Work");
+    // Si la lista general está vacía, insertamos los defaults
+    if (generalItems.length === 0) {
+      await Item.insertMany(defaultItems);
+      generalItems = await Item.find({}); // Recargamos
+    }
 
+    // B. Buscamos tareas para la columna WORK (Colección 'lists')
+    // Buscamos si ya existe la lista llamada "Work"
+    let workList = await List.findOne({ name: "Work" });
+
+    if (!workList) {
+      // Si no existe, creamos la lista "Work" con items por defecto
+      const list = new List({
+        name: "Work",
+        items: defaultItems
+      });
+      await list.save();
+      workList = list; // Asignamos para renderizar
+    }
+
+    // Renderizamos enviando AMBAS listas
     res.render("list", {
       listTitle: day,
-      generalItems: generalList,
-      workItems: workList
+      generalItems: generalItems,      // Viene de colección 'items'
+      workItems: workList.items        // Viene de colección 'lists' (array interno)
     });
 
   } catch (err) {
     console.log(err);
-    res.status(500).send("Error al obtener tareas");
+    res.status(500).send("Error");
   }
 });
 
-// Ruta POST para AGREGAR
+
+// RUTA POST: AGREGAR TAREA
 app.post("/", async function (req, res) {
-  const itemText = req.body.newItem;
+  const itemName = req.body.newItem;
   const listName = req.body.listName; // "General" o "Work"
 
-  if (!itemText || itemText.trim() === "") {
-    return res.redirect("/");
-  }
+  // Validación básica
+  if (!itemName || itemName.trim() === "") return res.redirect("/");
 
-  // Creamos un nuevo documento usando el Modelo
   const newItem = new Item({
-    text: itemText,
-    listType: listName
+    name: itemName
   });
 
-  try {
-    // Guardamos en Mongo
+  if (listName === "General") {
+    // Guardar en colección 'items'
     await newItem.save();
     res.redirect("/");
-  } catch (err) {
-    console.log(err);
-    res.redirect("/");
+  } else {
+    // Guardar en colección 'lists' (dentro del documento "Work")
+    try {
+      const foundList = await List.findOne({ name: "Work" });
+      foundList.items.push(newItem); // Añadimos al array
+      await foundList.save();        // Guardamos la lista actualizada
+      res.redirect("/");
+    } catch (err) {
+      console.log(err);
+    }
   }
 });
 
-// Ruta POST para ELIMINAR
-app.post("/delete", async function (req, res) {
-  const idToDelete = req.body.uid; // Ahora recibiremos el _id de Mongo
 
-  try {
-    // Buscamos por ID y eliminamos
-    await Item.findByIdAndDelete(idToDelete);
-    res.redirect("/");
-  } catch (err) {
-    console.log(err);
-    res.redirect("/");
+// RUTA POST: BORRAR TAREA
+app.post("/delete", async function (req, res) {
+  const checkedItemId = req.body.uid;
+  const listName = req.body.listName;
+
+  if (listName === "General") {
+    // Borrar de colección 'items'
+    try {
+      await Item.findByIdAndDelete(checkedItemId);
+      res.redirect("/");
+    } catch (err) {
+      console.log(err);
+    }
+  } else {
+    // Borrar de colección 'lists' (usando $pull de MongoDB)
+    try {
+      // Buscamos la lista "Work" y sacamos ($pull) el item cuyo _id coincida
+      await List.findOneAndUpdate(
+        { name: "Work" },
+        { $pull: { items: { _id: checkedItemId } } }
+      );
+      res.redirect("/");
+    } catch (err) {
+      console.log(err);
+    }
   }
 });
 
