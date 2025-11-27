@@ -44,14 +44,6 @@ const listSchema = new mongoose.Schema({
 const List = mongoose.model("List", listSchema);
 
 
-// 3. DATOS POR DEFECTO (Opcional, para que no empiece vacío)
-const defaultItems = [
-  { name: "Bienvenido a tu lista de tareas" },
-  { name: "Dale al + para agregar una nueva tarea" },
-  { name: "<-- Dale al checkbox para borrarla" }
-];
-
-
 // --- RUTAS ---
 
 app.get("/", async function (req, res) {
