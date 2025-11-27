@@ -1,7 +1,9 @@
 //jshint esversion:6
+require('dotenv').config(); // Cargar variables de entorno (seguridad)
 
 const express = require("express");
 const bodyParser = require("body-parser");
+const mongoose = require("mongoose"); // Importamos Mongoose
 const date = require(__dirname + "/date.js");
 
 const app = express();
@@ -10,63 +12,94 @@ app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
-// --- ESTRUCTURA DE DATOS ---
-const items = new Map();
-const workItems = new Map();
+// --- 1. CONEXIÓN A BASE DE DATOS ---
+const connectDB = async () => {
+  try {
+    // Usamos la variable del archivo .env
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("Conectado exitosamente a MongoDB");
+  } catch (err) {
+    console.error("Error conectando a MongoDB:", err);
+    process.exit(1);
+  }
+};
+connectDB();
 
-// Datos iniciales
-items.set('1', 'Comprar comida');
-items.set('2', 'Cocinar la comida');
-workItems.set('101', 'Revisar correos');
-workItems.set('102', 'Reunión de proyecto');
+// --- 2. CREAR EL ESQUEMA (El molde de los datos) ---
+const itemsSchema = new mongoose.Schema({
+  text: String,       // El texto de la tarea
+  listType: String    // "General" o "Work" (para saber dónde va)
+});
+
+// --- 3. CREAR EL MODELO (La herramienta para guardar/buscar) ---
+const Item = mongoose.model("Item", itemsSchema);
+
 
 // --- RUTAS ---
 
-// 1. Ruta Principal ÚNICA 
-app.get("/", function (req, res) {
+// Ruta Principal ÚNICA
+// Nota: Ahora usamos 'async' porque la base de datos tarda unos milisegundos en responder
+app.get("/", async function (req, res) {
   const day = date.getDate();
 
-  const generalList = Array.from(items, ([uid, text]) => ({ uid, text }));
-  const workList = Array.from(workItems, ([uid, text]) => ({ uid, text }));
+  try {
+    // Buscamos TODAS las tareas en la base de datos
+    const allItems = await Item.find({});
 
-  res.render("list", {
-    listTitle: day,
-    generalItems: generalList,
-    workItems: workList
-  });
+    // Filtramos usando Javascript para separar las listas
+    // (Mongoose devuelve un array de objetos con _id, text y listType)
+    const generalList = allItems.filter(item => item.listType === "General");
+    const workList = allItems.filter(item => item.listType === "Work");
+
+    res.render("list", {
+      listTitle: day,
+      generalItems: generalList,
+      workItems: workList
+    });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).send("Error al obtener tareas");
+  }
 });
 
-// 2. Ruta POST para AGREGAR 
-app.post("/", function (req, res) {
+// Ruta POST para AGREGAR
+app.post("/", async function (req, res) {
   const itemText = req.body.newItem;
-  const listName = req.body.listName;
-  const uid = Date.now().toString(); 
+  const listName = req.body.listName; // "General" o "Work"
 
   if (!itemText || itemText.trim() === "") {
-     return res.redirect("/");
+    return res.redirect("/");
   }
 
-  if (listName === "Work") {
-    workItems.set(uid, itemText);
-  } else {
-    items.set(uid, itemText);
+  // Creamos un nuevo documento usando el Modelo
+  const newItem = new Item({
+    text: itemText,
+    listType: listName
+  });
+
+  try {
+    // Guardamos en Mongo
+    await newItem.save();
+    res.redirect("/");
+  } catch (err) {
+    console.log(err);
+    res.redirect("/");
   }
-  
-  res.redirect("/");
 });
 
-// 3. Ruta POST para ELIMINAR
-app.post("/delete", function (req, res) {
-  const uidToDelete = req.body.uid;
-  const listName = req.body.listName;
+// Ruta POST para ELIMINAR
+app.post("/delete", async function (req, res) {
+  const idToDelete = req.body.uid; // Ahora recibiremos el _id de Mongo
 
-  if (listName === "Work") {
-    workItems.delete(uidToDelete);
-  } else {
-    items.delete(uidToDelete);
+  try {
+    // Buscamos por ID y eliminamos
+    await Item.findByIdAndDelete(idToDelete);
+    res.redirect("/");
+  } catch (err) {
+    console.log(err);
+    res.redirect("/");
   }
-  
-  res.redirect("/");
 });
 
 app.get("/about", function (req, res) {
