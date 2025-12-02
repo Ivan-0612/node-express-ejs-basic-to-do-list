@@ -20,9 +20,10 @@
   },
   "dependencies": {
     "body-parser": "^1.18.3",
+    "dotenv": "^16.4.7",
     "ejs": "^2.6.1",
-    "express": "^4.21.2",
-    "mongoose": "^7.5.0",
-    "dotenv": "^16.4.7"
+    "express": "^4.22.1",
+    "lodash": "^4.17.21",
+    "mongoose": "^7.5.0"
   }
 }

@@ -1,7 +1,20 @@
 <%- include("header") -%>
 
+  <!-- SECCIÓN SUPERIOR: CREAR NUEVA LISTA -->
+  <div class="create-list-container">
+    <div class="box">
+      <div class="item item-add">
+        <form action="/create-list" method="post" style="justify-content: center; width: 100%;">
+          <input type="text" name="newListName" placeholder="Nueva Lista..." autocomplete="off" required>
+          <button type="submit" name="list" class="add-list-btn">+</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <div class="lists-wrapper">
 
+    <!-- COLUMNA 1: LISTA GENERAL -->
     <div class="list-column">
       <div class="box" id="heading">
         <h1>Lista General</h1>
@@ -30,34 +43,44 @@
       </div>
     </div>
 
-    <div class="list-column">
-      <div class="box" id="heading-work">
-        <h1>Lista de Trabajo</h1>
-      </div>
-
-      <div class="box">
-        <% workItems.forEach((item)=> { %>
-          <div class="item">
-            <form action="/delete" method="post">
-              <input type="checkbox" name="uid" value="<%= item._id %>" onChange="this.form.submit()">
-
-              <p>
-                <%= item.name %>
-              </p>
-
-              <input type="hidden" name="listName" value="Work">
+    <!-- COLUMNAS DINÁMICAS: LISTAS PERSONALIZADAS -->
+    <% customLists.forEach(list=> { %>
+      <div class="list-column">
+        <div class="box" id="heading">
+          <div
+            style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 0 10px;">
+            <h1 style="margin: 0; flex-grow: 1;">
+              <%= list.name %>
+            </h1>
+            <form action="/delete-list" method="post" style="margin: 0;">
+              <input type="hidden" name="listId" value="<%= list._id %>">
+              <button type="submit" class="delete-list-btn"><i class="fa-solid fa-trash"></i></button>
             </form>
           </div>
-          <% }); %>
+        </div>
 
-            <div class="item item-add">
-              <form action="/" method="post" style="justify-content: center;">
-                <input type="text" name="newItem" placeholder="Tarea de trabajo..." autocomplete="off">
-                <input type="hidden" name="listName" value="Work">
-                <button type="submit" class="work-btn" name="list">+</button>
+        <div class="box">
+          <% list.items.forEach((item)=> { %>
+            <div class="item">
+              <form action="/delete" method="post">
+                <input type="checkbox" name="uid" value="<%= item._id %>" onChange="this.form.submit()">
+                <p>
+                  <%= item.name %>
+                </p>
+                <input type="hidden" name="listName" value="<%= list.name %>">
               </form>
             </div>
+            <% }); %>
+
+              <div class="item item-add">
+                <form action="/" method="post" style="justify-content: center;">
+                  <input type="text" name="newItem" placeholder="Nueva Tarea..." autocomplete="off">
+                  <input type="hidden" name="listName" value="<%= list.name %>">
+                  <button type="submit" name="list">+</button>
+                </form>
+              </div>
+        </div>
       </div>
-    </div>
+      <% }) %>
 
   </div> <%- include("footer") -%>

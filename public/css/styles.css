@@ -24,6 +24,24 @@ h1 {
   font-size: 1.5rem;
 }
 
+/* --- CONTENEDOR CREAR LISTA (NUEVO) --- */
+.create-list-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 40px;
+  padding: 0 20px;
+}
+
+.create-list-container .box {
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 0; /* Override default margin */
+}
+
+.create-list-container .item-add {
+    padding: 20px 0;
+}
+
 /* --- CONTENEDOR DE LISTAS (Lado a Lado) --- */
 .lists-wrapper {
   display: flex;
@@ -31,7 +49,7 @@ h1 {
   align-items: flex-start;
   flex-wrap: wrap;
   gap: 50px;
-  padding: 60px 20px;
+  padding: 40px 20px; /* Reduced top padding */
 }
 
 .list-column {
@@ -183,6 +201,30 @@ button.work-btn {
 
 button.work-btn:hover {
   background: linear-gradient(135deg, #5596f2 0%, #76e5ec 100%);
+}
+
+/* --- BOTÓN BORRAR LISTA (NUEVO) --- */
+button.delete-list-btn {
+    background: none;
+    box-shadow: none;
+    color: #e74c3c; /* Red color for delete */
+    font-size: 1.2rem;
+    width: auto;
+    min-height: auto;
+    margin-left: 10px;
+    padding: 5px;
+}
+
+button.delete-list-btn:hover {
+    background: none;
+    color: #c0392b;
+    transform: scale(1.1);
+    transition: transform 0.2s ease;
+}
+
+/* --- BOTÓN AÑADIR LISTA (NUEVO) --- */
+button.add-list-btn {
+    /* Inherits default button styles but ensures it looks good in the top box */
 }
 
 footer {
